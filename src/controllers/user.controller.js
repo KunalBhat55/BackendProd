@@ -93,7 +93,7 @@ const loginUser = asyncHandler(async (req, res) => {
     throw new ApiError(404, "User not found");
   }
 
-  const isPasswordMatch = await user.isPasswordCorrect(password);
+  const isPasswordMatch = await user.isPasswordCorrect(password); // this is a method in user model
   if (!isPasswordMatch) {
     throw new ApiError(401, "Incorrect password");
   }
@@ -211,8 +211,20 @@ const getCurrentUser = asyncHandler(async (req, res) => {
 });
 
 const updateUserDetails = asyncHandler(async (req, res) => {
+  // TODO: delete old avatar and coverImage from cloudinary
+
   const { fullName, username, email } = req.body;
-  const avatarLocalPath = req.file?.path;
+  console.log("Controller", req.files);
+
+  let avatarLocalPath = undefined;
+  let coverImageLocalPath = undefined;
+
+  if (req.files.avatar) {
+    avatarLocalPath = req.files.avatar[0].path;
+  }
+  if (req.files.coverImage) {
+    coverImageLocalPath = req.files.coverImage[0].path;
+  }
 
   const user = await User.findById(req.user._id).select(
     "-password -refreshToken"
@@ -228,6 +240,10 @@ const updateUserDetails = asyncHandler(async (req, res) => {
   if (avatarLocalPath) {
     const avatar = await uploadToCloudinary(avatarLocalPath);
     user.avatar = avatar;
+  }
+  if (coverImageLocalPath) {
+    const coverImage = await uploadToCloudinary(coverImageLocalPath);
+    user.coverImage = coverImage;
   }
 
   await user.save({ validateBeforeSave: false });
@@ -275,7 +291,6 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
 });
 
 const updateUserCoverImage = asyncHandler(async (req, res) => {
-   
   const coverImageLocalPath = req.file?.path;
   if (!coverImageLocalPath) {
     throw new ApiError(400, "Cover Image is required");
@@ -291,8 +306,81 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
     { new: true }
   ).select("-password -refreshToken");
 
- return res.status(200).json({ message: "Cover Image updated", data: user });
+  return res.status(200).json({ message: "Cover Image updated", data: user });
+});
 
+const getUserProfile = asyncHandler(async (req, res) => {
+  const { username } = req.params;
+  if (!username?.trim()) {
+    throw new ApiError(400, "Username is required");
+  }
+
+  // const user = await User.findOne({ username }).select("-password -refreshToken");
+  // if (!user) {
+  //   throw new ApiError(404, "User not found");
+  // }
+
+  const channel = await User.aggregate([
+    {
+      $match: { username: username?.toLowerCase() },
+    },
+    {
+      $lookup: {
+        from: "subscriptions",
+        localField: "_id",
+        foreignField: "channel",
+        as: "subscribers",
+      },
+    },
+    {
+      $lookup: {
+        from: "subscriptions",
+        localField: "_id",
+        foreignField: "subscriber",
+        as: "subscribedTo",
+      },
+    },
+    {
+      $addFields: {
+        subscriberCount: { $size: "$subscribers" },
+        subscribedToCount: { $size: "$subscribedTo" },
+
+        isSubscribed: {
+          $cond: {
+            if: {
+              $in: [req.user?._id, "$subscribers.subscriber"],
+            },
+            then: true,
+            else: false,
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        refreshToken: false,
+        password: false,
+
+        subscribedToCount: true,
+        subscriberCount: true,
+        email: true,
+        username: true,
+        fullName: true,
+        avatar: true,
+        coverImage: true,
+      },
+    },
+  ]);
+
+  if (!channel.length) {
+    throw new ApiError(404, "Channel not found");
+  }
+
+  console.log(channel);
+
+  return res
+    .status(200)
+    .json({ message: "User channel fetched", data: channel[0] });
 });
 
 export {
@@ -303,4 +391,5 @@ export {
   changeCurrentPassword,
   getCurrentUser,
   updateUserDetails,
+  getUserProfile,
 };

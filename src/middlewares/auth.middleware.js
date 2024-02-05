@@ -9,7 +9,6 @@ export const verifyUser = asyncHandler(async (req, res, next) => {
       req.cookies?.accessToken ||
       req.header("Authorization")?.replace("Bearer ", ""); // replace Bearer with empty string
 
-      console.log(req.cookies)
 
     if (!token) {
       // throw new ApiError(401, "Unauthorized");

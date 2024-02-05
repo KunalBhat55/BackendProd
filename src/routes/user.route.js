@@ -25,8 +25,15 @@ router.route("/register").post(
 );
 router.route("/login").post(loginUser);
 router.route("/logout").post(verifyUser, logoutUser);
-router.route("/refresh-token").post(verifyUser,refreshAccessToken);
-router.route("/update-user").post(verifyUser, upload.single("avatar"), updateUserDetails);
+router.route("/refresh-token").post(verifyUser, refreshAccessToken);
 
+router.route("/update-user").post(
+  verifyUser,
+  upload.fields([
+    { name: "avatar", maxCount: 1 },
+    { name: "coverImage", maxCount: 1 },
+  ]),
+  updateUserDetails
+);
 
 export default router;

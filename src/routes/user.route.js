@@ -7,6 +7,8 @@ import {
   changeCurrentPassword,
   getCurrentUser,
   updateUserDetails,
+  getUserProfile,
+  watchHistory,
 } from "../controllers/user.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
 import { verifyUser } from "../middlewares/auth.middleware.js";
@@ -26,8 +28,10 @@ router.route("/register").post(
 router.route("/login").post(loginUser);
 router.route("/logout").post(verifyUser, logoutUser);
 router.route("/refresh-token").post(verifyUser, refreshAccessToken);
+router.route("/change-password").post(verifyUser, changeCurrentPassword);
+router.route("/getCurrentUser").get(verifyUser, getCurrentUser);
 
-router.route("/update-user").post(
+router.route("/update-user").patch(
   verifyUser,
   upload.fields([
     { name: "avatar", maxCount: 1 },
@@ -35,5 +39,8 @@ router.route("/update-user").post(
   ]),
   updateUserDetails
 );
+
+router.route("/c/:username/").get(verifyUser, getUserProfile);
+router.route("/watch-history").get(verifyUser, watchHistory);
 
 export default router;

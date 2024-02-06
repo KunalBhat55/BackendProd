@@ -5,6 +5,7 @@ import { uploadToCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 import jwt from "jsonwebtoken";
 import { options } from "../utils/options.js";
+import mongoose from "mongoose";
 
 const generateAccessandRefreshTokens = async (userId) => {
   try {
@@ -310,7 +311,10 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
 });
 
 const getUserProfile = asyncHandler(async (req, res) => {
+
   const { username } = req.params;
+  
+  console.log("Params:", req.params);
   if (!username?.trim()) {
     throw new ApiError(400, "Username is required");
   }
@@ -329,7 +333,7 @@ const getUserProfile = asyncHandler(async (req, res) => {
         from: "subscriptions",
         localField: "_id",
         foreignField: "channel",
-        as: "subscribers",
+        as: "subscribers", // gives an output array of subscribers
       },
     },
     {
@@ -358,11 +362,13 @@ const getUserProfile = asyncHandler(async (req, res) => {
     },
     {
       $project: {
+        // take only these fields
         refreshToken: false,
         password: false,
 
         subscribedToCount: true,
         subscriberCount: true,
+        isSubscribed: true,
         email: true,
         username: true,
         fullName: true,
@@ -383,6 +389,57 @@ const getUserProfile = asyncHandler(async (req, res) => {
     .json({ message: "User channel fetched", data: channel[0] });
 });
 
+const watchHistory = asyncHandler(async (req, res) => {
+
+  const user = await User.aggregate([
+    {
+      $match: {
+        _id: new mongoose.Types.ObjectId(req.user._id),
+      },
+    },
+    {
+      $lookup: {
+        from: "videos",
+        localField: "watchHistory",
+        foreignField: "_id",
+        as: "watchHistory",
+        pipeline: [
+          {
+            $lookup: {
+              from: "users",
+              localField: "owner",
+              foreignField: "_id",
+              as: "owner",
+              pipeline: [
+                {
+                  $project: {
+                    fullName: true,
+                    username: true,
+                    avatar: true,
+                  },
+                },
+              ],
+            },
+          },
+
+          {
+            // instead of array
+            $addFields: { 
+              owner: {  
+                $first: "$owner",
+              },
+            },
+          },
+        ],
+      },
+    },
+  ]);
+
+ 
+  res.status(200).json({message: "Watch History fetched", data: user[0].watchHistory})
+
+});
+
 export {
   registerUser,
   loginUser,
@@ -392,4 +449,5 @@ export {
   getCurrentUser,
   updateUserDetails,
   getUserProfile,
+  watchHistory,
 };

@@ -20,7 +20,8 @@ export const verifyUser = asyncHandler(async (req, res, next) => {
 
     jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, async (err, decodedUser) => {
       if (err) {
-        throw new ApiError(401, "token expired");
+        console.log(err);
+        res.status(401).json({message: "Token Expired!"})
       }
 
       const user = await User.findById(decodedUser?._id).select( 

@@ -65,8 +65,8 @@ const registerUser = asyncHandler(async (req, res) => {
     email,
     password,
     fullName,
-    avatar,
-    coverImage: coverImage || "",
+    avatar: avatar.url,
+    coverImage: coverImage.url || "",
   });
 
   if (!user) {
@@ -240,11 +240,11 @@ const updateUserDetails = asyncHandler(async (req, res) => {
 
   if (avatarLocalPath) {
     const avatar = await uploadToCloudinary(avatarLocalPath);
-    user.avatar = avatar;
+    user.avatar = avatar.url;
   }
   if (coverImageLocalPath) {
     const coverImage = await uploadToCloudinary(coverImageLocalPath);
-    user.coverImage = coverImage;
+    user.coverImage = coverImage.url;
   }
 
   await user.save({ validateBeforeSave: false });
@@ -284,7 +284,7 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
 
   const user = await User.findByIdAndUpdate(
     req.user._id,
-    { $set: { avatar } },
+    { $set: { avatar: avatar.url } },
     { new: true }
   ).select("-password -refreshToken");
 
@@ -303,7 +303,7 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
 
   const user = await User.findByIdAndUpdate(
     req.user._id,
-    { $set: { coverImage } },
+    { $set: { coverImage: coverImage.url } },
     { new: true }
   ).select("-password -refreshToken");
 
@@ -382,11 +382,11 @@ const getUserProfile = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Channel not found");
   }
 
-  console.log(channel);
+  console.log(channel); 
 
   return res
     .status(200)
-    .json({ message: "User channel fetched", data: channel[0] });
+    .json({ message: "User channel fetched", data: channel[0] }); 
 });
 
 const watchHistory = asyncHandler(async (req, res) => {

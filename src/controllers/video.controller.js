@@ -1,12 +1,11 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/apiErrors.js";
-import { uploadToCloudinary } from "../utils/cloudinary";
+import { uploadToCloudinary } from "../utils/cloudinary.js";
 import { Video } from "../models/video.model.js";
 
 const uploadVideo = asyncHandler(async (req, res) => {
-
-  // try update here or separate 
-  const { title, description, duration, views, isPublished } = req.body;
+  // try update here or separate
+  const { title, description, views, isPublished } = req.body;
 
   if (!title) {
     return res.status(401).json({ message: "Title is required!" });
@@ -27,11 +26,11 @@ const uploadVideo = asyncHandler(async (req, res) => {
   const thumbnail = await uploadToCloudinary(thumbnailLocalPath);
 
   const videoData = await Video.create({
-    videoFile,
-    thumbnail,
+    videoFile: videoFile.url,
+    thumbnail: thumbnail.url,
     title,
     description: description || "",
-    duration: duration || "",
+    duration: videoFile.duration || "",
     views: views || "",
     isPublished: isPublished || false,
   });
@@ -43,14 +42,42 @@ const uploadVideo = asyncHandler(async (req, res) => {
   return res
     .status(200)
     .json({ message: "Video Data Created successfully!", data: videoData });
-
-
 });
 const getVideos = asyncHandler(async (req, res) => {
-
-    // 
+  
+  const {page, limit} = req.query;
 
 
 });
 
-export { uploadVideo };
+const getVideoById = asyncHandler(async (req, res) => {
+  const { videoId } = req.params;
+
+  const videoData = await Video.findById(videoId);
+
+  if (!videoData) {
+    throw new ApiError(404, "Video not found!");
+  }
+
+  return res.status(200).json({ data: videoData });
+});
+
+const deleteVideo = asyncHandler(async (req, res) => {
+  const { videoId } = req.params;
+
+  const videoData = await Video.findByIdAndDelete(videoId);
+  // video owner check
+  if(videoData.owner._id !== req.user._id){
+  
+  }
+
+  // delete from cloudinary
+
+  if (!videoData) {
+    throw new ApiError(404, "Video not found!");
+  }
+
+  return res.status(200).json({ message: "Video Deleted!" });
+});
+
+export { uploadVideo, getVideos, getVideoById };

@@ -17,7 +17,7 @@ const router = Router();
 
 // upload.fields() is used to upload multiple files
 // handle same routes with different methods
-
+// to use auth middleware to every route, use router.use(verifyUser)
 router.route("/register").post(
   upload.fields([
     { name: "avatar", maxCount: 1 },
@@ -40,7 +40,7 @@ router.route("/update-user").patch(
   updateUserDetails
 );
 
-router.route("/c/:username/").get(verifyUser, getUserProfile);
+router.route("/c/:username").get(verifyUser, getUserProfile);
 router.route("/watch-history").get(verifyUser, watchHistory);
 
 export default router;

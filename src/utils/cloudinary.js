@@ -10,22 +10,33 @@ cloudinary.config({
 const uploadToCloudinary = async (filePath) => {
   try {
     if (!filePath) return "file not found";
-      
-      // we can use image's name with condition 
-      // delete the file if user upload the same file to cloudinary
-      
-      
 
-    const response = await cloudinary.uploader.upload(filePath, {resource_type: "auto"});
+    // we can use image's name with condition
+    // delete the file if user upload the same file to cloudinary
+
+    const response = await cloudinary.uploader.upload(filePath, {
+      resource_type: "auto",
+    });
     console.log("uploaded to cloudinary!", response);
-    fs.unlinkSync(filePath); 
+    fs.unlinkSync(filePath);
 
     return response;
-
   } catch (error) {
     fs.unlinkSync(filePath); // delete file from server
     console.log(error);
     return null;
   }
 };
-export { uploadToCloudinary };
+
+const deleteFromCloudinary = async (publicId) => {
+  try {
+    if (!publicId) return "file not found";
+    const response = await cloudinary.uploader.destroy(publicId);
+    return response;
+  } catch (error) {
+    console.log(error);
+    return null;
+  }
+};
+
+export { uploadToCloudinary, deleteFromCloudinary };

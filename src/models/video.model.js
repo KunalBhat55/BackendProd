@@ -31,17 +31,22 @@ const videoSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    videoFilePublicId: {
+      
+      type: String,
+    },
+    thumbnailPublicId: {
+      type: String,
+    },
+
     owner: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
-
-
   },
   { timestamps: true }
 );
 
-videoSchema.plugin(mongooseAgregratePaginate); // pagination 
-
+videoSchema.plugin(mongooseAgregratePaginate); // pagination
 
 export const Video = mongoose.model("Video", videoSchema);

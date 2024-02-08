@@ -1,6 +1,6 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/apiErrors.js";
-import { uploadToCloudinary } from "../utils/cloudinary.js";
+import { uploadToCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js";
 import { Video } from "../models/video.model.js";
 
 const uploadVideo = asyncHandler(async (req, res) => {
@@ -26,6 +26,7 @@ const uploadVideo = asyncHandler(async (req, res) => {
   const thumbnail = await uploadToCloudinary(thumbnailLocalPath);
 
   const videoData = await Video.create({
+    owner: req.user._id,
     videoFile: videoFile.url,
     thumbnail: thumbnail.url,
     title,
@@ -33,6 +34,8 @@ const uploadVideo = asyncHandler(async (req, res) => {
     duration: videoFile.duration || "",
     views: views || "",
     isPublished: isPublished || false,
+    videoFilePublicId: videoFile.public_id,
+    thumbnailPublicId: thumbnail.public_id,
   });
 
   if (!videoData) {
@@ -44,10 +47,7 @@ const uploadVideo = asyncHandler(async (req, res) => {
     .json({ message: "Video Data Created successfully!", data: videoData });
 });
 const getVideos = asyncHandler(async (req, res) => {
-  
-  const {page, limit} = req.query;
-
-
+  const { page, limit } = req.query;
 });
 
 const getVideoById = asyncHandler(async (req, res) => {
@@ -65,19 +65,40 @@ const getVideoById = asyncHandler(async (req, res) => {
 const deleteVideo = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
 
-  const videoData = await Video.findByIdAndDelete(videoId);
+  const videoData = await Video.findById(videoId);
+
+  if (!videoData) {
+    return res
+      .status(404)
+      .json({ message: "Video not found!", success: false });
+  }
   // video owner check
-  if(videoData.owner._id !== req.user._id){
-  
+  if (videoData.owner.toString() !== req.user._id.toString()) {
+    return res
+      .status(401)
+      .json({
+        message: "You are not authorized to delete this video!",
+        success: false,
+      });
   }
 
   // delete from cloudinary
-
-  if (!videoData) {
-    throw new ApiError(404, "Video not found!");
+  
+  const videoDelete = await deleteFromCloudinary(videoData.videoFilePublicId);
+  const thumbnailDelete = await deleteFromCloudinary(videoData.thumbnailPublicId);
+  
+  if (!videoDelete || !thumbnailDelete) {
+  
+   return res.status(500).json({ message: "Video Deletion Failed!", success: false});
   }
 
-  return res.status(200).json({ message: "Video Deleted!" });
+  const deletedvideo = await Video.findByIdAndDelete(videoId);
+  
+  if (!deletedvideo) {
+    throw new ApiError(500, "Video Deletion Failed!");
+  }
+
+  return res.status(200).json({ message: "Video Deleted!", success: true});
 });
 
-export { uploadVideo, getVideos, getVideoById };
+export { uploadVideo, getVideos, getVideoById, deleteVideo };

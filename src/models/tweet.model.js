@@ -11,9 +11,6 @@ const tweetSchema = new mongoose.Schema({
         required: [true, "Content is required"],
     },
 
-
-
-
 }, { timestamps: true });
 
 export const Tweet = mongoose.model("Tweet", tweetSchema);

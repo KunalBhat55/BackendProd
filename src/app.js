@@ -15,9 +15,13 @@ app.use(cors())
 // Routes
 import userRouter from "./routes/user.route.js";
 import videoRouter from "./routes/video.route.js";
+import commentRouter from "./routes/comment.route.js";
+import tweetRouter from "./routes/tweet.route.js";
 
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/videos", videoRouter);
+app.use("/api/v1/comments", commentRouter);
+app.use("/api/v1/tweets", tweetRouter);
 
 
 export {app};

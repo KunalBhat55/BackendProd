@@ -28,10 +28,12 @@ const uploadToCloudinary = async (filePath) => {
   }
 };
 
-const deleteFromCloudinary = async (publicId) => {
+const deleteFromCloudinary = async (publicId, resource_type) => {
   try {
     if (!publicId) return "file not found";
-    const response = await cloudinary.uploader.destroy(publicId);
+    const response = await cloudinary.uploader.destroy(publicId, {resource_type});
+
+    console.log(response);
     return response;
   } catch (error) {
     console.log(error);

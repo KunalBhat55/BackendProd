@@ -1,6 +1,9 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/apiErrors.js";
-import { uploadToCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js";
+import {
+  uploadToCloudinary,
+  deleteFromCloudinary,
+} from "../utils/cloudinary.js";
 import { Video } from "../models/video.model.js";
 
 const uploadVideo = asyncHandler(async (req, res) => {
@@ -56,7 +59,9 @@ const getVideoById = asyncHandler(async (req, res) => {
   const videoData = await Video.findById(videoId);
 
   if (!videoData) {
-    throw new ApiError(404, "Video not found!");
+    return res
+      .status(404)
+      .json({ message: "Video with Id not found!", success: false });
   }
 
   return res.status(200).json({ data: videoData });
@@ -74,31 +79,39 @@ const deleteVideo = asyncHandler(async (req, res) => {
   }
   // video owner check
   if (videoData.owner.toString() !== req.user._id.toString()) {
+    return res.status(401).json({
+      message: "You are not authorized to delete this video!",
+      success: false,
+    });
+  }
+
+  // delete from cloudinary
+
+  const videoDelete = await deleteFromCloudinary(
+    videoData.videoFilePublicId,
+    "video"
+  );
+  const thumbnailDelete = await deleteFromCloudinary(
+    videoData.thumbnailPublicId,
+    "image"
+  );
+
+  if (!videoDelete || !thumbnailDelete) {
     return res
-      .status(401)
+      .status(500)
       .json({
-        message: "You are not authorized to delete this video!",
+        message: "Failed to delete Video or Thumbnail!",
         success: false,
       });
   }
 
-  // delete from cloudinary
-  
-  const videoDelete = await deleteFromCloudinary(videoData.videoFilePublicId);
-  const thumbnailDelete = await deleteFromCloudinary(videoData.thumbnailPublicId);
-  
-  if (!videoDelete || !thumbnailDelete) {
-  
-   return res.status(500).json({ message: "Video Deletion Failed!", success: false});
-  }
-
   const deletedvideo = await Video.findByIdAndDelete(videoId);
-  
+
   if (!deletedvideo) {
     throw new ApiError(500, "Video Deletion Failed!");
   }
 
-  return res.status(200).json({ message: "Video Deleted!", success: true});
+  return res.status(200).json({ message: "Video Deleted!", success: true });
 });
 
 export { uploadVideo, getVideos, getVideoById, deleteVideo };
